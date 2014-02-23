@@ -1,6 +1,6 @@
 # VM
 
-This is a virtual machine for the immutability based operating system [HALT](https://github.com/augustl/halt).
+This is a virtual machine originally intended for the immutability based operating system [HALT](https://github.com/augustl/halt).
 
 It starts off as a compiler to a bytecode and a bytecode interpreter written in C with the minimal usage of
 cstdlib. The goal is to make it simple, operate over a static memory buffer and allow to eventually remove the
