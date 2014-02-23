@@ -1,8 +1,10 @@
 // Definition of the nodes loaded up from the file
+#ifndef _NODES_H_
+#define _NODES_H_
 
 // TYPES
 
-#define T_COMPOUND_EXPRESSION '('
+#define T_EXPRESSION_LIST '('
 #define T_VARIABLE 'v'
 #define T_STRING 's'
 #define T_INT32 'i'
@@ -14,11 +16,20 @@ struct string16 {
     char *value;
 };
 
-struct Expression {
-      char type;
-      union {
-         int32_t iVal;
-         struct string16 s16Val;
-         struct Expression *exprsVal;
-      } value;
+struct ExpressionList {
+    struct Expression *head;
+    struct ExpressionList *next;
 };
+
+typedef union {
+    int32_t iVal;
+    struct string16 s16Val;
+    struct ExpressionList *exprsVal;
+} value_t;
+
+struct Expression {
+    char type;
+    value_t value;
+};
+
+#endif

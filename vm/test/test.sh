@@ -5,7 +5,16 @@ TARGET_DIR=$TEST_DIR/../target
 
 EXECUTABLE=$TARGET_DIR/vm
 
+COL_END="\e[0m"
+COL_RED="\e[0;31m"
+COL_YELLOW="\e[0;33m"
+COL_GREEN="\e[0;32m"
+
 tup upd
+if [ $? -ne 0 ]; then
+    echo -e ${COL_RED}Compilation failure, no tests ran.$COL_END
+    exit $?
+fi
 
 TEMP_DIR=`mktemp -d tmp.XXX`
 trap cleanup EXIT
@@ -14,28 +23,30 @@ function tmp_file() {
     mktemp --tmpdir="$TEMP_DIR"
 }
 
-COL_END="\e[0m"
-COL_RED="\e[0;31m"
-COL_YELLOW="\e[0;33m"
-
 function execute() {
     PROGRAM=$1
     EXPECTED_OUTPUT=$2
     CASE=$3
     echo Running test case $CASE
+    # echo Should produce 
+    # cat $EXPECTED_OUTPUT
 
     OUTPUT=`tmp_file`
+    STRIPPED_OUTPUT=`tmp_file`
 
     cat "$PROGRAM" | $EXECUTABLE | tee $OUTPUT | sed "s/^/\[$CASE\]: /"
     RESULT=${PIPESTATUS[1]}
 
+    cat $OUTPUT | grep -v "^\[trace\] .*$" > $STRIPPED_OUTPUT
 
     if [ $RESULT -ne 0 ]; then
         echo -e ${COL_RED}ERROR:$COL_END $CASE ended with $RESULT.
     else
-        colordiff -u $OUTPUT $EXPECTED_OUTPUT | tail -n +3
+        colordiff -u $STRIPPED_OUTPUT $EXPECTED_OUTPUT | tail -n +3
         if [ ${PIPESTATUS[0]} -ne 0 ]; then
             echo -e ^ "${COL_YELLOW}FAILURE:$COL_END $CASE doesn't match. Expected output marked with +"
+        else
+            echo -e $CASE: ${COL_GREEN}SUCCESS$COL_END
         fi
     fi
 }
