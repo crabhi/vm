@@ -93,6 +93,16 @@ vm_status load_expression(struct Expression *result, const size_t max_length, si
     return VM_OK;
 }
 
+void print_value(FILE *output, struct Expression *value) {
+    switch (value->type) {
+        case T_INT32:
+            fprintf(output, "%i", value->value.iVal);
+            break;
+        default:
+            log_error("Not implemented type: %c", value->type);
+    }
+}
+
 int main(void) {
     // Runtime init checks
 
@@ -106,6 +116,8 @@ int main(void) {
 
     const vm_status load_result = load_expression(code, MAX_MEM, &code_length);
     if (VM_OK == load_result) {
+        print_value(stdout, code);
+        printf("\n");
         return 0;
     } else {
         log_error("Failed to load code, err: %i", load_result);
