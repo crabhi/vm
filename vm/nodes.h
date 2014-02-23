@@ -6,7 +6,7 @@
 
 #define T_EXPRESSION_LIST '('
 #define T_VARIABLE 'v'
-#define T_STRING 's'
+#define T_STRING_16 's'
 #define T_INT32 'i'
 
 #include <stdint.h>

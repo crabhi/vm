@@ -1,12 +1,13 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
+#include <assert.h>
 #include "nodes.h"
 #include "main.h"
 
 #define PRINT_SIZE(x) printf("sizeof(" #x ") = %lu\n", sizeof(x))
 
-#define MAX_MEM (1024*1024)
+#define MAX_MEM (1024)
 
 /**
  * Like fprintf, but adds "\n".
@@ -54,20 +55,15 @@ vm_status load_expression(struct Expression *result, const size_t max_length, si
 
     int c;
     while (EOF != (c = getc(source))) {
-        log_trace("Read %i", c);
-
         if (max_length - *used < sizeof(struct Expression)) {
             log_error("Out of memory, used %lu, maximum %lu", *used, max_length);
             return VM_OOM;
         }
 
-        used += sizeof(struct Expression);
+        *used += sizeof(struct Expression);
         result->type = (char) c;
 
         switch (c) {
-            case T_EXPRESSION_LIST:
-                log_error("Lists not yet implemented");
-                return VM_ERR;
             case T_INT32: {
                 int32_t val;
                 size_t value_size = sizeof(val);
@@ -86,6 +82,11 @@ vm_status load_expression(struct Expression *result, const size_t max_length, si
                     result->value.iVal = val;
                     return VM_OK;
                 }
+                assert (0);
+                break;
+            default:
+                log_error("Loading type %c not implemented", c);
+                return VM_ERR;
             }
         }
     }
@@ -115,6 +116,11 @@ int main(void) {
     size_t code_length = 0;
 
     const vm_status load_result = load_expression(code, MAX_MEM, &code_length);
+
+    assert(code_length <= MAX_MEM);
+
+    log_trace("Total code size: %lu bytes.", code_length);
+
     if (VM_OK == load_result) {
         print_value(stdout, code);
         printf("\n");
@@ -122,6 +128,7 @@ int main(void) {
     } else {
         log_error("Failed to load code, err: %i", load_result);
 
+        /*
         PRINT_SIZE(struct Expression);
         PRINT_SIZE(struct string16);
         PRINT_SIZE(int32_t);
@@ -130,6 +137,7 @@ int main(void) {
         PRINT_SIZE(char*);
         PRINT_SIZE(struct Expression*);
         PRINT_SIZE(value_t);
+        */
 
         return load_result;
     }
