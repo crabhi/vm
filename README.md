@@ -17,8 +17,8 @@ dependency on the stdlib. Later, also the compiler can be rewritten without the 
     <expression>    ::= "(" <expression>* ")"
                         | "v" <string-16> # symbol reference
                         | "i" <int-32>
-                        | "s" <string-32> # string literal
-    <int-32>        ::= <byte> <byte> <byte> <byte> # big-endian 32-bit integer
+                        | "s" <string-16> # string literal
+    # <int-32>        ::= <byte> <byte> <byte> <byte> # big-endian 32-bit integer
     <int-16>        ::= <byte> <byte> # big-endian 16-bit integer
     <string-16>     ::= <int-16> <byte>{repeating n-times where n is the previous integer}
     <string-32>     ::= <int-32> <byte>{repeating n-times where n is the previous integer}

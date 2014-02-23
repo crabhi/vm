@@ -1,0 +1,5 @@
+(print "HELLO\n")
+
+SHOULD PRODUCE
+
+HELLO

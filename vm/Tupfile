@@ -1,0 +1,1 @@
+: main.c |> gcc main.c -o target/vm |> target/vm
