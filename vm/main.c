@@ -53,6 +53,8 @@ vm_status load_expression(struct Expression *result, const size_t max_length, si
     *used = 0;
     FILE *source = stdin;
 
+    struct Expression *current_expr = result;
+
     int c;
     while (EOF != (c = getc(source))) {
         if (max_length - *used < sizeof(struct Expression)) {
@@ -61,7 +63,7 @@ vm_status load_expression(struct Expression *result, const size_t max_length, si
         }
 
         *used += sizeof(struct Expression);
-        result->type = (char) c;
+        current_expr->type = (char) c;
 
         switch (c) {
             case T_INT32: {
@@ -79,25 +81,60 @@ vm_status load_expression(struct Expression *result, const size_t max_length, si
                     log_load_error("<int32>", source);
                     return VM_ERR;
                 } else {
-                    result->value.iVal = val;
-                    return VM_OK;
+                    current_expr->value.iVal = val;
+                    current_expr++;
+                    break;
                 }
-                assert (0);
+                assert (0); // Should be unreachable.
+            }
+            case T_STRING_16: {
+                struct string16 *str = &(current_expr->value.s16Val);
+                if(!fread(&(str->length), sizeof str->length, 1, source)) {
+                    log_load_error("<string16>.length", source);
+                    return VM_ERR;
+                } else {
+                    current_expr++;
+                    str->value = (unsigned char*) current_expr;
+                    log_trace("expected length: %i * %lu", str->length, sizeof *str->value);
+                    if (str->length > fread(str->value, sizeof *str->value, str->length, source)) {
+                        log_load_error("<string16>.value", source);
+                        return VM_ERR;
+                    } else {
+                        *used += str->length;
+                        current_expr = (struct Expression*) (str->value + str->length);
+                        return VM_OK;
+                    }
+                }
+
+                break;
+            }
+            case '\n':
+            case ' ':
+            case '\t':
+                log_trace("Ignored character: 0x%x", c);
                 break;
             default:
                 log_error("Loading type %c not implemented", c);
                 return VM_ERR;
-            }
         }
     }
 
     return VM_OK;
 }
 
+void print_string(FILE *output, struct string16 *value) {
+    for (int i = 0; i < value->length; i++) {
+        fputc(value->value[i], output);
+    }
+}
+
 void print_value(FILE *output, struct Expression *value) {
     switch (value->type) {
         case T_INT32:
             fprintf(output, "%i", value->value.iVal);
+            break;
+        case T_STRING_16:
+            print_string(output, (struct string16*) &(value->value.s16Val));
             break;
         default:
             log_error("Not implemented type: %c", value->type);
