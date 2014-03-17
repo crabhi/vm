@@ -66,18 +66,18 @@ vm_status load_expressions(OUT struct ExpressionList *result)
 
     log_trace("Will read %d elements", length);
 
-    result->head = NULL;
-
     for (int i=0; i < length; i++) {
-        result->next = code_malloc_t(struct ExpressionList);
-
         if(VM_OK != load_expression(&(result->head)))
         {
             log_error("Error reading %dth element.", i + 1);
             return VM_ERR;
         };
 
+        result->next = code_malloc_t(struct ExpressionList);
+
         result = result->next;
+        result->head = NULL;
+        result->next = NULL;
     }
 
     return VM_OK;
@@ -104,7 +104,6 @@ vm_status load_expression(OUT struct Expression **result)
             case T_INT32:
                 assert(1); // NOP
                 int32_t val;
-                size_t value_size = sizeof(val);
                 if(!fread(&val, sizeof(val), 1, source)) {
                     log_load_error("<int32>", source);
                     return VM_ERR;
@@ -133,9 +132,12 @@ vm_status load_expression(OUT struct Expression **result)
                     return VM_ERR;
                 }
                 return VM_OK;
-            case '(':
+            case T_EXPRESSION_LIST:
                 assert(1); // NOP
                 struct ExpressionList *exprs = &(expr->value.exprsVal);
+                exprs->head = NULL;
+                exprs->next = NULL;
+
                 log_trace("Will read (");
                 if (VM_OK != load_expressions(exprs)) {
                     log_error("Error loading (", source);
@@ -158,25 +160,62 @@ vm_status load_expression(OUT struct Expression **result)
 
 void print_string(FILE *output, struct string16 *value)
 {
+    fputc('"', output);
     for (int i = 0; i < value->length; i++) {
-        fputc(value->value[i], output);
+        char c = value->value[i];
+        if ('"' == c || '\\' == c)
+        {
+            fputc('\\', output);
+        }
+        fputc(c, output);
     }
+    fputc('"', output);
 }
 
-void print_value(FILE *output, struct Expression *value)
+void _print_value(FILE *output, struct Expression *value, int nesting)
 {
+    for (int i = 0; i < nesting; i++) {
+        fputc(' ', output);
+    }
+    if (value == NULL) {
+        fprintf(output, "NIL");
+    }
     switch (value->type) {
         case T_INT32:
             fprintf(output, "%i", value->value.iVal);
             break;
         case T_STRING_16:
-            print_string(output, (struct string16*) &(value->value.s16Val));
+            print_string(output, &(value->value.s16Val));
+            break;
+        case T_EXPRESSION_LIST:
+            assert(1); // NOP
+            struct ExpressionList* list = &(value->value.exprsVal);
+            fputc('(', output);
+            fputc('\n', output);
+            do
+            {
+                _print_value(output, list->head, nesting + 4);
+                list = list->next;
+
+                if (list->next != NULL)
+                {
+                    fputc(',', output);
+                }
+
+                fputc('\n', output);
+
+            } while (list->next != NULL);
+
+            fputc(')', output);
             break;
         default:
             log_error("Not implemented type: %c", value->type);
     }
 }
 
+void print_value(FILE *output, struct Expression *value) {
+    _print_value(output, value, 0);
+}
 int main(void)
 {
     // Runtime init checks
