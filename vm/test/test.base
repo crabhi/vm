@@ -81,30 +81,35 @@ function test_case() {
 
     cat $CODE | $COMPILER > $COMPILED
     
-    execute $COMPILED $OUTPUT $CASE $EXPECTED_EXIT
+    execute $COMPILED $OUTPUT `basename $CASE` $EXPECTED_EXIT
 }
 
 if [ $# -eq 0 ]; then
-    ARGS=`ls *.case`
-    N_CASES=`ls *.case | wc -l`
+    if [ "" == "$CASES_DIR" ]; then
+        echo -e ${COL_RED}Must specify CASES_DIR with tests to run or cases themselves as arguments.$COL_END
+        exit 1
+    fi
+    ARGS=`ls ${CASES_DIR}/*.case`
+    N_CASES=`ls ${CASES_DIR}/*.case | wc -l`
 else
     ARGS=$*
     N_CASES=$#
 fi
 
-ERRORS=0
-FAILURES=0
+function run_tests() {
+    ERRORS=0
+    FAILURES=0
 
-echo Will run $N_CASES tests.
+    echo Will run $N_CASES tests.
 
-for CASE in $ARGS; do
-    test_case $CASE
-done
+    for CASE in $ARGS; do
+        test_case $CASE
+    done
 
-if [ $ERRORS -eq 0 -a $FAILURES -eq 0 ]; then
-    echo -e ${COL_GREEN}SUCCESS \($N_CASES tests\)$COL_END
-else
-    echo -e ${COL_RED}$ERRORS errors, $FAILURES failures out of $N_CASES tests$COL_END
-    exit 1
-fi
-
+    if [ $ERRORS -eq 0 -a $FAILURES -eq 0 ]; then
+        echo -e ${COL_GREEN}SUCCESS \($N_CASES tests\)$COL_END
+    else
+        echo -e ${COL_RED}$ERRORS errors, $FAILURES failures out of $N_CASES tests$COL_END
+        exit 1
+    fi
+}

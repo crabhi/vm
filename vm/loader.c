@@ -1,9 +1,6 @@
-#include <stdio.h>
-#include <stdlib.h>
 #include <assert.h>
-#include "nodes.h"
-#include "main.h"
 #include "log.h"
+#include "loader.h"
 
 #define PRINT_SIZE(x) printf("sizeof(" #x ") = %lu\n", sizeof(x))
 
@@ -14,9 +11,6 @@ char *code_heap_end = NULL;
 
 #define code_malloc_t(type) ((type*) code_malloc(sizeof(type)))
 
-/**
- * Initializes MAX_MEM bytes to be used by `code_malloc`.
- */
 void code_malloc_init()
 {
     if (code_heap_end != code_heap) {
@@ -83,12 +77,6 @@ vm_status load_expressions(OUT struct ExpressionList *result)
     return VM_OK;
 }
 
-/**
- * Loads expression from stdin.
- * @param result the loaded expression
- * @return 0 OK
- *
- */
 vm_status load_expression(OUT struct Expression **result)
 {
     FILE *source = stdin;
@@ -231,45 +219,5 @@ void _print_value(FILE *output, struct Expression *value, int nesting)
 
 void print_value(FILE *output, struct Expression *value) {
     _print_value(output, value, 0);
-}
-int main(void)
-{
-    // Runtime init checks
-
-    if (sizeof(int32_t) != 4) {
-        printf("Unexpected size of int32_t: %lu\n", sizeof(int32_t));
-        return 201;
-    }
-
-    code_malloc_init();
-
-    struct Expression *code;
-
-    const vm_status load_result = load_expression(&code);
-
-    log_trace("Total code size: %lu bytes.", code_length());
-
-    if (VM_OK == load_result) {
-        print_value(stdout, code);
-        printf("\n");
-        return 0;
-    } else {
-        log_error("Failed to load code, err: %i", load_result);
-
-        /*
-        PRINT_SIZE(struct string16);
-        PRINT_SIZE(int32_t);
-        PRINT_SIZE(int16_t);
-        PRINT_SIZE(char);
-        PRINT_SIZE(char*);
-        PRINT_SIZE(struct Expression*);
-        PRINT_SIZE(struct Expression);
-        PRINT_SIZE(struct ExpressionList*);
-        PRINT_SIZE(struct ExpressionList);
-        PRINT_SIZE(value_t);
-        */
-
-        return load_result;
-    }
 }
 

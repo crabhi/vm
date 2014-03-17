@@ -1,1 +1,1 @@
-: main.c |> gcc main.c log.c -Wall -pedantic -std=c99 -o target/vm |> target/vm
+:  |> gcc loader.c log.c loader_main.c -Wall -pedantic -std=c99 -o target/loader |> target/loader
