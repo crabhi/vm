@@ -15,4 +15,14 @@ typedef unsigned char vm_status;
  */
 size_t code_length();
 
+vm_status load_expressions(OUT struct ExpressionList *result);
+
+/**
+ * Loads expression from stdin.
+ * @param result the loaded expression
+ * @return 0 OK
+ *
+ */
+vm_status load_expression(OUT struct Expression **result);
+
 #endif

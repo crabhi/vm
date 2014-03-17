@@ -52,6 +52,37 @@ size_t code_length()
     return code_heap_end - code_heap;
 }
 
+vm_status load_expressions(OUT struct ExpressionList *result)
+{
+    FILE *source = stdin;
+
+    int16_t length;
+
+    if(!fread(&(length), sizeof length, 1, source))
+    {
+        log_load_error("<(>.length", source);
+        return VM_ERR;
+    }
+
+    log_trace("Will read %d elements", length);
+
+    result->head = NULL;
+
+    for (int i=0; i < length; i++) {
+        result->next = code_malloc_t(struct ExpressionList);
+
+        if(VM_OK != load_expression(&(result->head)))
+        {
+            log_error("Error reading %dth element.", i + 1);
+            return VM_ERR;
+        };
+
+        result = result->next;
+    }
+
+    return VM_OK;
+}
+
 /**
  * Loads expression from stdin.
  * @param result the loaded expression
@@ -74,21 +105,15 @@ vm_status load_expression(OUT struct Expression **result)
                 assert(1); // NOP
                 int32_t val;
                 size_t value_size = sizeof(val);
-                size_t nmemb = 1;
-
-                log_trace("Want to read %lu*%lu", nmemb, value_size);
-
-                size_t size_read = fread(&val, value_size, nmemb, source);
-
-                log_trace("Read %lu: %i", size_read, val);
-
-                if (size_read < nmemb) {
+                if(!fread(&val, sizeof(val), 1, source)) {
                     log_load_error("<int32>", source);
                     return VM_ERR;
                 }
 
+                log_trace("Read int32: %i", val);
+
                 expr->value.iVal = val;
-                break;
+                return VM_OK;
             case T_STRING_16:
                 assert(1); // NOP
                 struct string16 *str = &(expr->value.s16Val);
@@ -101,23 +126,30 @@ vm_status load_expression(OUT struct Expression **result)
 
                 str->value = code_malloc(str->length);
 
-                log_trace("expected length: %i * %lu", str->length, sizeof *str->value);
+                log_trace("Loading string of length: %i * %lu", str->length, sizeof *str->value);
                 if (str->length > fread(str->value, sizeof *str->value, str->length, source))
                 {
                     log_load_error("<string16>.value", source);
                     return VM_ERR;
                 }
-                break;
+                return VM_OK;
+            case '(':
+                assert(1); // NOP
+                struct ExpressionList *exprs = &(expr->value.exprsVal);
+                log_trace("Will read (");
+                if (VM_OK != load_expressions(exprs)) {
+                    log_error("Error loading (", source);
+                }
+                return VM_OK;
             case '\n':
             case ' ':
             case '\t':
                 log_trace("Ignored character: 0x%x", c);
+                break;
             default:
-                log_error("Loading type %c not implemented", c);
+                log_error("Loading type %c (0x%x) not implemented", c, c);
                 return VM_ERR;
         }
-
-    return VM_OK;
     }
 
     log_error("Unexpected end of file");

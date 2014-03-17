@@ -22,6 +22,8 @@ void log_load_error(const char *expected, FILE *source) {
         log_error("Unexpected end of file. Expected %s.", expected);
     } else if (ferror(source)) {
         log_error("Error reading input");
+    } else {
+        log_error("Expected %s.", expected);
     }
 }
 

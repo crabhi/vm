@@ -14,7 +14,7 @@ dependency on the stdlib. Later, also the compiler can be rewritten without the 
     <major_version> ::= <byte>
     <minor_version> ::= <byte>
     <body>          ::= <expression>
-    <expression>    ::= "(" <expression>* ")"
+    <expression>    ::= "(" <int-16> <expression>*
                         | "v" <string-16> # symbol reference
                         | "i" <int-32>
                         | "s" <string-16> # string literal

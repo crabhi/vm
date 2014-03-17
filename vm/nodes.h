@@ -24,7 +24,7 @@ struct ExpressionList {
 typedef union {
     int32_t iVal;
     struct string16 s16Val;
-    struct ExpressionList *exprsVal;
+    struct ExpressionList exprsVal;
 } value_t;
 
 struct Expression {
