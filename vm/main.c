@@ -114,6 +114,7 @@ vm_status load_expression(OUT struct Expression **result)
                 expr->value.iVal = val;
                 return VM_OK;
             case T_STRING_16:
+            case T_VARIABLE:
                 assert(1); // NOP
                 struct string16 *str = &(expr->value.s16Val);
 
@@ -173,6 +174,14 @@ void print_string(FILE *output, struct string16 *value)
     fputc('"', output);
 }
 
+void print_name(FILE *output, struct string16 *value)
+{
+    for (int i = 0; i < value->length; i++)
+    {
+        fputc(value->value[i], output);
+    }
+}
+
 void _print_value(FILE *output, struct Expression *value, int nesting)
 {
     for (int i = 0; i < nesting; i++) {
@@ -187,6 +196,9 @@ void _print_value(FILE *output, struct Expression *value, int nesting)
             break;
         case T_STRING_16:
             print_string(output, &(value->value.s16Val));
+            break;
+        case T_VARIABLE:
+            print_name(output, &(value->value.s16Val));
             break;
         case T_EXPRESSION_LIST:
             assert(1); // NOP
@@ -245,13 +257,15 @@ int main(void)
         log_error("Failed to load code, err: %i", load_result);
 
         /*
-        PRINT_SIZE(struct Expression);
         PRINT_SIZE(struct string16);
         PRINT_SIZE(int32_t);
         PRINT_SIZE(int16_t);
         PRINT_SIZE(char);
         PRINT_SIZE(char*);
         PRINT_SIZE(struct Expression*);
+        PRINT_SIZE(struct Expression);
+        PRINT_SIZE(struct ExpressionList*);
+        PRINT_SIZE(struct ExpressionList);
         PRINT_SIZE(value_t);
         */
 
