@@ -34,4 +34,8 @@ vm_status load_expressions(OUT struct ExpressionList *result);
  */
 vm_status load_expression(OUT struct Expression **result);
 
+/**
+ * Prints value in a human-readable form.
+ */
+void print_value(FILE *output, struct Expression *value);
 #endif

@@ -1,1 +1,2 @@
-:  |> gcc loader.c log.c loader_main.c -Wall -pedantic -std=c99 -o target/loader |> target/loader
+: foreach *.c |> gcc -c %f -Wall -pedantic -std=c99 -o %o |> %B.o
+: loader.o log.o loader_main.o |> gcc %f -o %o |> target/loader

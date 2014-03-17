@@ -217,7 +217,8 @@ void _print_value(FILE *output, struct Expression *value, int nesting)
     }
 }
 
-void print_value(FILE *output, struct Expression *value) {
+void print_value(FILE *output, struct Expression *value)
+{
     _print_value(output, value, 0);
 }
 
