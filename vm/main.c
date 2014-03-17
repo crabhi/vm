@@ -1,72 +1,77 @@
 #include <stdio.h>
-#include <stdarg.h>
 #include <stdlib.h>
 #include <assert.h>
 #include "nodes.h"
 #include "main.h"
+#include "log.h"
 
 #define PRINT_SIZE(x) printf("sizeof(" #x ") = %lu\n", sizeof(x))
 
 #define MAX_MEM (1024)
 
+char *code_heap = NULL;
+char *code_heap_end = NULL;
+
+#define code_malloc_t(type) ((type*) code_malloc(sizeof(type)))
+
 /**
- * Like fprintf, but adds "\n".
+ * Initializes MAX_MEM bytes to be used by `code_malloc`.
  */
-void vfprintfln(FILE *file, const char *format, va_list args) {
-    vfprintf(file, format, args);
-    fprintf(file, "\n");
-}
+void code_malloc_init()
+{
+    if (code_heap_end != code_heap) {
+        free(code_heap);
+        code_heap = NULL;
+        code_heap_end = NULL;
+    }
 
-void log_error(const char *format, ...) {
-    va_list args;
-    va_start(args, format);
+    code_heap = malloc(MAX_MEM);
+    code_heap_end = code_heap;
 
-    vfprintfln(stderr, format, args);
-
-    va_end(args);
-}
-
-void log_load_error(const char *expected, FILE *source) {
-    if (feof(source)) {
-        log_error("Unexpected end of file. Expected %s.", expected);
-    } else if (ferror(source)) {
-        log_error("Error reading input");
+    if (code_heap == NULL) {
+        log_error("Error when initializing code memory");
+        exit(VM_OOM);
     }
 }
 
-void log_trace(const char *format, ...) {
-    va_list args;
-    va_start(args, format);
+char * code_malloc(size_t bytes)
+{
+    if (MAX_MEM - code_length() < bytes) {
+        log_error("Out of memory, used %lu, maximum %lu, wanted %lu.", code_length(), MAX_MEM, bytes);
+        exit(VM_OOM);
+    }
 
-    fprintf(stdout, "[trace] ");
-    vfprintfln(stdout, format, args);
+    char *place = code_heap_end;
+    code_heap_end += bytes;
 
-    va_end(args);
+    return place;
+}
+
+size_t code_length()
+{
+    return code_heap_end - code_heap;
 }
 
 /**
  * Loads expression from stdin.
+ * @param result the loaded expression
  * @return 0 OK
  *
  */
-vm_status load_expression(struct Expression *result, const size_t max_length, size_t *used) {
-    *used = 0;
+vm_status load_expression(OUT struct Expression **result)
+{
     FILE *source = stdin;
-
-    struct Expression *current_expr = result;
 
     int c;
     while (EOF != (c = getc(source))) {
-        if (max_length - *used < sizeof(struct Expression)) {
-            log_error("Out of memory, used %lu, maximum %lu", *used, max_length);
-            return VM_OOM;
-        }
+        *result = code_malloc_t(struct Expression);
+        struct Expression *expr = *result;
 
-        *used += sizeof(struct Expression);
-        current_expr->type = (char) c;
+        expr->type = (char) c;
 
         switch (c) {
-            case T_INT32: {
+            case T_INT32:
+                assert(1); // NOP
                 int32_t val;
                 size_t value_size = sizeof(val);
                 size_t nmemb = 1;
@@ -80,55 +85,54 @@ vm_status load_expression(struct Expression *result, const size_t max_length, si
                 if (size_read < nmemb) {
                     log_load_error("<int32>", source);
                     return VM_ERR;
-                } else {
-                    current_expr->value.iVal = val;
-                    current_expr++;
-                    break;
-                }
-                assert (0); // Should be unreachable.
-            }
-            case T_STRING_16: {
-                struct string16 *str = &(current_expr->value.s16Val);
-                if(!fread(&(str->length), sizeof str->length, 1, source)) {
-                    log_load_error("<string16>.length", source);
-                    return VM_ERR;
-                } else {
-                    current_expr++;
-                    str->value = (unsigned char*) current_expr;
-                    log_trace("expected length: %i * %lu", str->length, sizeof *str->value);
-                    if (str->length > fread(str->value, sizeof *str->value, str->length, source)) {
-                        log_load_error("<string16>.value", source);
-                        return VM_ERR;
-                    } else {
-                        *used += str->length;
-                        current_expr = (struct Expression*) (str->value + str->length);
-                        return VM_OK;
-                    }
                 }
 
+                expr->value.iVal = val;
                 break;
-            }
+            case T_STRING_16:
+                assert(1); // NOP
+                struct string16 *str = &(expr->value.s16Val);
+
+                if(!fread(&(str->length), sizeof str->length, 1, source))
+                {
+                    log_load_error("<string16>.length", source);
+                    return VM_ERR;
+                }
+
+                str->value = code_malloc(str->length);
+
+                log_trace("expected length: %i * %lu", str->length, sizeof *str->value);
+                if (str->length > fread(str->value, sizeof *str->value, str->length, source))
+                {
+                    log_load_error("<string16>.value", source);
+                    return VM_ERR;
+                }
+                break;
             case '\n':
             case ' ':
             case '\t':
                 log_trace("Ignored character: 0x%x", c);
-                break;
             default:
                 log_error("Loading type %c not implemented", c);
                 return VM_ERR;
         }
-    }
 
     return VM_OK;
+    }
+
+    log_error("Unexpected end of file");
+    return VM_ERR;
 }
 
-void print_string(FILE *output, struct string16 *value) {
+void print_string(FILE *output, struct string16 *value)
+{
     for (int i = 0; i < value->length; i++) {
         fputc(value->value[i], output);
     }
 }
 
-void print_value(FILE *output, struct Expression *value) {
+void print_value(FILE *output, struct Expression *value)
+{
     switch (value->type) {
         case T_INT32:
             fprintf(output, "%i", value->value.iVal);
@@ -141,7 +145,8 @@ void print_value(FILE *output, struct Expression *value) {
     }
 }
 
-int main(void) {
+int main(void)
+{
     // Runtime init checks
 
     if (sizeof(int32_t) != 4) {
@@ -149,14 +154,13 @@ int main(void) {
         return 201;
     }
 
-    struct Expression *code = (struct Expression*) malloc(MAX_MEM);
-    size_t code_length = 0;
+    code_malloc_init();
 
-    const vm_status load_result = load_expression(code, MAX_MEM, &code_length);
+    struct Expression *code;
 
-    assert(code_length <= MAX_MEM);
+    const vm_status load_result = load_expression(&code);
 
-    log_trace("Total code size: %lu bytes.", code_length);
+    log_trace("Total code size: %lu bytes.", code_length());
 
     if (VM_OK == load_result) {
         print_value(stdout, code);
@@ -179,3 +183,4 @@ int main(void) {
         return load_result;
     }
 }
+

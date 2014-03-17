@@ -13,7 +13,7 @@
 
 struct string16 {
     int16_t length;
-    unsigned char *value;
+    char *value;
 };
 
 struct ExpressionList {
