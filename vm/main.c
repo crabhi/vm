@@ -203,8 +203,11 @@ void _print_value(FILE *output, struct Expression *value, int nesting)
                 }
 
                 fputc('\n', output);
-
             } while (list->next != NULL);
+
+            for (int i = 0; i < nesting; i++) {
+                fputc(' ', output);
+            }
 
             fputc(')', output);
             break;
