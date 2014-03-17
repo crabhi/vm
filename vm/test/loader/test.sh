@@ -1,9 +1,8 @@
 #!/bin/bash
 
-CASES_DIR=`dirname "${BASH_SOURCE[0]}"`
-
 . ../test.base
 
+CASES_DIR=`dirname "${BASH_SOURCE[0]}"`
 EXECUTABLE=$TEST_DIR/../target/loader
 
-run_tests
+run_tests $*

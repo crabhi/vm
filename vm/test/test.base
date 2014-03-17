@@ -1,5 +1,15 @@
 #!/bin/bash
 
+# Test runner.
+#
+# Included by the subfolder runners. The child test runner should source this
+# file, specify CASES_DIR and EXECUTABLE and call run_tests $*.
+#
+# CASES_DIR - The directory where tests will be looked up if no argument is
+#             provided.
+#
+# EXECUTABLE - The program which should be tested, by default target/vm.
+
 TEST_DIR=`dirname "${BASH_SOURCE[0]}"`
 TARGET_DIR=$TEST_DIR/../target
 
@@ -84,21 +94,21 @@ function test_case() {
     execute $COMPILED $OUTPUT `basename $CASE` $EXPECTED_EXIT
 }
 
-if [ $# -eq 0 ]; then
-    if [ "" == "$CASES_DIR" ]; then
-        echo -e ${COL_RED}Must specify CASES_DIR with tests to run or cases themselves as arguments.$COL_END
-        exit 1
-    fi
-    ARGS=`ls ${CASES_DIR}/*.case`
-    N_CASES=`ls ${CASES_DIR}/*.case | wc -l`
-else
-    ARGS=$*
-    N_CASES=$#
-fi
-
 function run_tests() {
     ERRORS=0
     FAILURES=0
+
+    if [ $# -eq 0 ]; then
+        if [ "" == "$CASES_DIR" ]; then
+            echo -e ${COL_RED}Must specify CASES_DIR with tests to run or cases themselves as arguments.$COL_END
+            exit 1
+        fi
+        ARGS=`ls ${CASES_DIR}/*.case`
+        N_CASES=`ls ${CASES_DIR}/*.case | wc -l`
+    else
+        ARGS=$*
+        N_CASES=$#
+    fi
 
     echo Will run $N_CASES tests.
 
