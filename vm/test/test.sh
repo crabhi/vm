@@ -3,6 +3,7 @@
 TEST_DIR=`dirname "${BASH_SOURCE[0]}"`
 TARGET_DIR=$TEST_DIR/../target
 
+COMPILER=$TEST_DIR/../../compiler/main.py
 EXECUTABLE=$TARGET_DIR/vm
 
 COL_END="\e[0m"
@@ -66,6 +67,7 @@ function test_case() {
 
     CODE=`tmp_file`
     OUTPUT=`tmp_file`
+    COMPILED=`tmp_file`
 
     DELIMITER_LINE=`tail -n -2 $TEMP_DIR/x0`
 
@@ -76,8 +78,10 @@ function test_case() {
 
     head -n -3 $TEMP_DIR/x0 > $CODE
     mv $TEMP_DIR/x1 $OUTPUT
+
+    cat $CODE | $COMPILER > $COMPILED
     
-    execute $CODE $OUTPUT $CASE $EXPECTED_EXIT
+    execute $COMPILED $OUTPUT $CASE $EXPECTED_EXIT
 }
 
 if [ $# -eq 0 ]; then
