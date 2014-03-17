@@ -141,6 +141,7 @@ vm_status load_expression(OUT struct Expression **result)
                 log_trace("Will read (");
                 if (VM_OK != load_expressions(exprs)) {
                     log_error("Error loading (", source);
+                    return VM_ERR;
                 }
                 return VM_OK;
             case '\n':
